@@ -1,0 +1,150 @@
+#################################
+#Start of the matrix multiply code#
+#################################
+###Will not work for 0 size######
+matrixFun:
+       pushl %ebp  #%eax is the return value
+       rrmovl %esp, %ebp
+       xorl %esi, %esi #initialize i it is at -4(%ebp)
+       irmovl $-1, %esi #%esi
+       xorl %ebx, %ebx #initialize j it is at -8(%ebp)
+       irmovl $-1, %ebx #ebx
+       xorl %edi, %edi #initialize k it is at -12($ebp)
+       irmovl $-1, %edi #edi
+      xorl %edx, %edx #initialize sum  
+       #the variables are initialized to -1, so that 1 can be added
+       #at the beginning of every iteration
+       pushl %esi
+       pushl %ebx
+       pushl %edi
+L1:
+	irmovl $1, %ecx       #Add one to i
+	mrmovl -4(%ebp), %esi #Get i from the stack
+	addl   %ecx, %esi     #Add one to i
+	rmmovl %esi, -4(%ebp) #Update i value on stack
+	mrmovl 8(%ebp), %ecx  #ecx = size
+	subl   %esi, %ecx     #if i<size
+	jg     L2	      #jump to next loop
+	mrmovl 20(%ebp), %eax #Else push matrix C to %eax
+	jmp Done	      #Jump to end
+
+L2:
+	irmovl $1, %ecx       #Add one to j
+        mrmovl -8(%ebp), %ebx #Get j from the stack
+        addl   %ecx, %ebx     #Add one to j
+        rmmovl %ebx, -8(%ebp) #Update j value on stack
+	xorl   %edx, %edx     #Set sum = 0
+        mrmovl 8(%ebp), %ecx  #ecx = size
+        subl   %ebx, %ecx     #if j<size
+        jg     L3	      #Jump to next loop
+	irmovl $-1, %ebx
+	rmmovl %ebx, -8(%ebp)      #Else set j to -1
+	jmp L1		      #Jump to outside loop	
+
+L3:
+	irmovl $1, %ecx       #Add one to k
+        mrmovl -12(%ebp), %esi #Get k from the stack
+        addl   %ecx, %esi     #Add one to k
+        rmmovl %esi, -12(%ebp) #Update k value on stack
+        mrmovl 8(%ebp), %ecx  #ecx = size
+        subl   %esi, %ecx     #if k<size
+        jg     L4	      #Jump and do calculations
+        irmovl $-1, %esi	#Else set k to -1
+        rmmovl %esi, -12(%ebp)   #Else set k to -1
+        jmp L11			#End Loop and store in matrix C
+
+L4:
+	mrmovl -4(%ebp), %ecx #Get i from the stack
+	mrmovl 8(%ebp), %esi  #Get size from stack
+	addl %esi, %esi       #size*2
+	addl %esi, %esi       #size*2 now size = size*4
+	rrmovl %esi, %edi
+
+L5:
+	irmovl $-1, %ebx #Subtract i once
+	addl %ebx, %ecx  #Subtract i once
+	jl  L51		 #Jump to L6 to store i once i is done
+	je  L6
+	addl %esi, %edi  #edi = edi + size
+	jmp L5		 #Restart loop
+
+L51:
+	irmovl $0, %edi #if i = 0 set stack size to 0
+L6:
+	mrmovl -12(%ebp), %ebx #Get k from the stack
+	addl %ebx, %ebx       #k*2
+	addl %ebx, %ebx       #k*2 now k = k*4
+	addl %ebx, %edi	      #A[i][k] index stored in %edi
+
+L7:
+	mrmovl -12(%ebp), %ecx #Get k from the stack
+        mrmovl 8(%ebp), %eax  #Get size from stack
+        addl %eax, %eax       #size*2
+        addl %eax, %eax       #size*2 now size = size*4
+	rrmovl %eax, %esi
+
+L8:
+        irmovl $-1, %ebx #Subtract k once
+        addl %ebx, %ecx  #Subtract k once
+        jl  L81
+	je  L9           #Jump to L6 to store k once k is done
+        addl %eax, %esi  #esi = esi+size
+        jmp L8           #Restart loop
+
+L81:
+	irmovl $0, %esi
+L9:
+        mrmovl -8(%ebp), %ebx #Get j from the stack
+        addl %ebx, %ebx       #j*2
+        addl %ebx, %ebx       #j*2 now j = j*4
+        addl %ebx, %esi       #B[k][j] index stored in %esi
+
+L10:
+	mrmovl 12(%ebp), %ebx #Get matrix a location
+	addl %edi, %ebx	      #Add to get the correct location
+	mrmovl 16(%ebp), %ecx #Get matrix b location
+	addl %esi, %ecx       #Add to get the correct location
+	mrmovl (%ebx), %ebx   #Make numbers available
+	mrmovl (%ecx), %ecx   #Make numbers available
+	xorl   %ecx, %ebx
+	addl %ebx, %edx
+	jmp L3
+
+L11:
+        mrmovl -4(%ebp), %ecx #Get i from the stack
+        mrmovl 8(%ebp), %esi  #Get size from stack
+        addl %esi, %esi       #size*2
+        addl %esi, %esi       #size*2 now size = size*4
+	rrmovl %esi, %edi
+
+L12:
+        irmovl $-1, %ebx #Subtract i once
+        addl %ebx, %ecx  #Subtract i once
+        jl  L122
+	je  L13          #Jump to L6 to store i once i is done
+        addl %esi, %edi  #edi = edi + size
+        jmp L12          #Restart loop
+L122:
+	irmovl $0, %edi
+L13:
+        mrmovl -8(%ebp), %ebx #Get j from the stack
+        addl %ebx, %ebx       #j*2
+        addl %ebx, %ebx       #j*2 now k = k*4
+        addl %ebx, %edi       #A[i][j] index stored in %esi
+        mrmovl 20(%ebp), %ebx #Get c from the stack
+	addl %edi, %ebx
+	rmmovl %edx, (%ebx)
+	jmp L2
+	
+
+Done : 
+        popl %edi 
+        popl %ebx
+        popl %esi
+        rrmovl %ebp, %esp
+        popl %ebp
+        ret 
+
+#End of matrix multiply code#
+#Start of matrix Data#
+

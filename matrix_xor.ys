@@ -1,0 +1,107 @@
+#################################
+#Start of the matrix multiply code#
+#################################
+###Will not work for 0 size######
+matrixFun:
+       pushl %ebp  #%eax is the return value
+       rrmovl %esp, %ebp
+	irmovl $-1, %esi
+	irmovl $-1, %ebx
+	irmovl $-1, %ecx
+       pushl %esi
+       pushl %ebx
+       pushl %ecx
+	irmovl $1, %eax
+#       rmmovl %edi, -20(%ebp)
+
+L1:
+	mrmovl -4(%ebp), %esi #Get i from the stack
+	mrmovl 8(%ebp), %ecx ##
+	addl   %eax, %esi     #Add one to i
+	rmmovl %esi, -4(%ebp) ##
+	subl   %esi, %ecx     #if i<size
+	jg     L12	      #jump to next loop
+	mrmovl 20(%ebp), %eax #Else push matrix C to %eax
+	jmp Done	      #Jump to end
+
+L12:
+        andl %esi, %esi  #Subtract i once
+        je  L2
+        mrmovl 8(%ebp), %ecx  #Get size from stack
+	xorl %esi, %esi
+        leal4 0(%esi, %ecx)
+        addl %ecx, %edi  #esi = esi+size
+
+L2:
+        addl   %eax, %ebx     #Add one to j
+	mrmovl 8(%ebp), %ecx 
+        rmmovl %ebx, -8(%ebp) #Update j value on stack
+	xorl   %edx, %edx     #Set sum = 0
+        subl   %ebx, %ecx     #if j<size
+        jg     L3	      #Jump to next loop
+	irmovl $-1, %ecx
+	irmovl $-1, %ebx
+	rmmovl %ecx, -8(%ebp)      #Else set j to -1
+	jmp L1		      #Jump to outside loop	
+
+L3:
+	mrmovl -12(%ebp), %ebx
+	mrmovl 8(%ebp), %ecx
+        addl   %eax, %ebx     #Add one to #k
+	rrmovl %ebx, %eax
+        rmmovl %ebx, -12(%ebp) #Update k value on stack
+        subl   %ecx, %eax     #if k<size
+        jl     L4	      #Jump and do calculations
+        irmovl $-1, %ebx	#Else set k to -1
+	mrmovl 20(%ebp), %ecx ## 
+	mrmovl -8(%ebp), %eax
+        rmmovl %ebx, -12(%ebp)   #Else set k to -1
+        jmp L6			#End Loop and store in matrix C
+
+
+L4:
+	xorl %eax, %eax ##
+	andl %ebx, %ebx
+        je L5
+	leal4 0(%eax, %ecx)
+	mrmovl -16(%ebp), %esi
+        addl %ecx, %esi  #esi = esi+size
+L5:
+        mrmovl -8(%ebp), %ecx #Get j from the stack
+	leal4 0(%eax, %ebx)
+	leal4 0(%eax, %ecx)
+	rmmovl %esi, -16(%ebp)
+	addl %edi, %ebx	      #A[i][k] index stored in %edi
+        addl %ecx, %esi       #B[k][j] index stored in %esi
+
+	mrmovl 12(%ebp), %eax #Get matrix a location
+	mrmovl 16(%ebp), %ecx #Get matrix b location
+	addl %ebx, %eax	      #Add to get the correct location
+	addl %esi, %ecx       #Add to get the correct location
+
+	mrmovl (%eax), %eax   #Make numbers available
+	mrmovl (%ecx), %ecx   #Make numbers available
+	xorl   %ecx, %eax
+	addl %eax, %edx
+	irmovl $1, %eax ##
+	jmp L3
+L6:
+	xorl %esi, %esi
+	leal4 0(%esi, %eax)
+        addl %edi, %eax       #A[i][j] index stored in %esi
+	mrmovl -8(%ebp), %ebx ##
+	addl %ecx, %eax
+	rmmovl %edx, (%eax)
+	irmovl $1, %eax
+	jmp L2
+	
+
+Done : 
+        popl %edi 
+        popl %ebx
+        popl %esi
+        rrmovl %ebp, %esp
+        popl %ebp
+        ret 
+
+#End of matrix multiply code#
